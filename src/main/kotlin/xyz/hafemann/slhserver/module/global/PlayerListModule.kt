@@ -6,13 +6,13 @@ import net.minestom.server.event.EventNode
 import net.minestom.server.event.player.PlayerSpawnEvent
 import xyz.hafemann.slhserver.game.Game
 import xyz.hafemann.slhserver.module.GameModule
-import xyz.hafemann.slhserver.util.BRAND_COLOR_PRIMARY_1
-import xyz.hafemann.slhserver.util.BRAND_COLOR_PRIMARY_2
+import xyz.hafemann.slhserver.util.BRAND_COLOR_PRIMARY
+import xyz.hafemann.slhserver.util.BRAND_COLOR_SECONDARY
 
 class PlayerListModule(
-    private val header: Component = Component.translatable("global.server.name", BRAND_COLOR_PRIMARY_2).appendNewline(),
+    private val header: Component = Component.translatable("global.server.name", BRAND_COLOR_PRIMARY).appendNewline(),
     private val footer: Component = Component.newline()
-        .append(Component.translatable("global.server.domain", BRAND_COLOR_PRIMARY_1))
+        .append(Component.translatable("global.server.domain", BRAND_COLOR_SECONDARY))
 ) : GameModule() {
     override fun initialize(parent: Game, eventNode: EventNode<Event>) {
         eventNode.addListener(PlayerSpawnEvent::class.java) { event ->

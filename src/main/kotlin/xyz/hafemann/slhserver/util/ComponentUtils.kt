@@ -2,32 +2,32 @@ package xyz.hafemann.slhserver.util
 
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.Component
-import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Entity
+import net.minestom.server.entity.GameMode
 import net.minestom.server.entity.Player
 import net.minestom.server.item.ItemStack
 
-val messageColor: TextColor = BRAND_COLOR_PRIMARY_2
-val fieldColor: TextColor = BRAND_COLOR_PRIMARY_1
-val errorColor: TextColor = NamedTextColor.RED
-val errorFieldColor: TextColor = NamedTextColor.RED
+val messageColor: TextColor = BRAND_COLOR_PRIMARY
+val fieldColor: TextColor = BRAND_COLOR_SECONDARY
+val errorColor: TextColor = ERROR_COLOR_SECONDARY
+val errorFieldColor: TextColor = ERROR_COLOR_PRIMARY
 
 fun translateMessage(key: String, vararg fields: Any): Component {
     return formatTranslatedMessage(key, messageColor, fieldColor, *fields)
 }
 
-fun translateError(key: String, vararg fields: Any): Component {
-    return formatTranslatedMessage(key, errorColor, errorFieldColor, *fields)
+fun translateError(key: String, singleColor: Boolean = false, vararg fields: Any): Component {
+    return formatTranslatedMessage(key, errorColor, if (singleColor) errorColor else errorFieldColor, *fields)
 }
 
 fun Audience.sendTranslated(key: String, vararg fields: Any) {
-    this.sendMessage(translateMessage(key, fields))
+    this.sendMessage(translateMessage(key, *fields))
 }
 
 fun Audience.sendTranslatedError(key: String, vararg fields: Any) {
-    this.sendMessage(translateError(key, fields))
+    this.sendMessage(translateError(key, false, *fields))
 }
 
 private fun formatTranslatedMessage(
@@ -38,12 +38,13 @@ private fun formatTranslatedMessage(
 ): Component {
     return Component.translatable(key, messageColor, values.map {
         if (it is Iterable<*> && it.all { entity -> entity is Entity }) {
-            return formatEntityDescriptor(it.map { entity -> entity as Entity })
+            return@map formatEntityDescriptor(it.map { entity -> entity as Entity }, fieldColor)
         }
         when (it) {
             is Component -> it
             is Pos -> formatPosition(it)
-            is Entity -> formatEntityDescriptor(listOf(it))
+            is Entity -> formatEntityDescriptor(listOf(it), fieldColor)
+            is GameMode -> Component.translatable("gameMode.${it.toString().lowercase()}", fieldColor)
             is ItemStack -> Component.translatable(it.material().registry().translationKey(), fieldColor)
                 .hoverEvent(it.asHoverEvent())
 
@@ -52,23 +53,22 @@ private fun formatTranslatedMessage(
     })
 }
 
-private fun formatEntityDescriptor(entities: List<Entity>): Component {
+private fun formatEntityDescriptor(entities: List<Entity>, fieldColor: TextColor): Component {
     if (entities.size == 1) {
         val entity = entities[0]
         return if (entity is Player) {
-            entity.name
+            entity.name.color(fieldColor)
         } else {
             Component.translatable(entity.entityType.registry().translationKey(), fieldColor)
         }
     } else {
         val onlyPlayers = entities.map { it is Player }.contains(false)
-        val size = Component.text(entities.size, fieldColor)
         val descriptorKey = if (onlyPlayers) {
             "command.descriptor.players"
         } else {
             "command.descriptor.entities"
         }
-        return size.appendSpace().append(Component.translatable(descriptorKey, messageColor))
+        return Component.translatable(descriptorKey, fieldColor, Component.text(entities.size))
     }
 }
 
