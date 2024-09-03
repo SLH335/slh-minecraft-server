@@ -9,6 +9,7 @@ import net.minestom.server.network.packet.client.play.ClientSignedCommandChatPac
 import org.slf4j.LoggerFactory
 import xyz.hafemann.slhserver.game.Game
 import xyz.hafemann.slhserver.game.GameLoader
+import xyz.hafemann.slhserver.service.BedBlockHandler
 import xyz.hafemann.slhserver.service.Internationalization
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -40,6 +41,12 @@ private fun start() {
             MinecraftServer.getCommandManager().execute(player, packet.message)
         }
 
+    // Register listeners
+    registerListeners()
+
+    // Register block handlers
+    registerBlockHandlers()
+
     // Register translations
     Internationalization.registerTranslations()
 
@@ -64,4 +71,12 @@ private fun start() {
         player.respawnPoint = game.mapProperties.spawn
         game.addPlayer(player)
     }
+}
+
+private fun registerListeners() {
+    BedBlockHandler.Listener()
+}
+
+private fun registerBlockHandlers() {
+    MinecraftServer.getBlockManager().registerHandler(BedBlockHandler().namespaceId) { BedBlockHandler() }
 }
