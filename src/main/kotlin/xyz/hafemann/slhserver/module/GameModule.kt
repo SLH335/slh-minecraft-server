@@ -2,12 +2,13 @@ package xyz.hafemann.slhserver.module
 
 import net.minestom.server.event.Event
 import net.minestom.server.event.EventNode
+import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import xyz.hafemann.slhserver.game.Game
 import kotlin.reflect.full.findAnnotation
 
 abstract class GameModule {
-    protected val logger = LoggerFactory.getLogger(javaClass)
+    protected val logger: Logger = LoggerFactory.getLogger(this::class.simpleName)
 
     open val eventPriority = 0
 

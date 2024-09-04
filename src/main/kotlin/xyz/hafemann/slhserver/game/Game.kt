@@ -10,6 +10,7 @@ import net.minestom.server.instance.InstanceContainer
 import net.minestom.server.instance.LightingChunk
 import net.minestom.server.instance.anvil.AnvilLoader
 import org.slf4j.LoggerFactory
+import xyz.hafemann.slhserver.event.GameStateChangedEvent
 import xyz.hafemann.slhserver.module.GameModule
 import xyz.hafemann.slhserver.module.ModuleHolder
 import xyz.hafemann.slhserver.util.sendTranslatedError
@@ -22,7 +23,11 @@ import kotlin.reflect.jvm.jvmName
 abstract class Game(val name: String, val mode: String, val map: String) : ModuleHolder() {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
-    var state = GameState.SERVER_STARTING
+    var state: GameState = GameState.SERVER_STARTING
+        set(value) {
+            eventNode.call(GameStateChangedEvent(this, field, value))
+            field = value
+        }
 
     var maxPlayers = -1 // -> no limit by defalut
 

@@ -3,6 +3,7 @@ package xyz.hafemann.slhserver.game
 import com.charleskorn.kaml.Yaml
 import kotlinx.serialization.Serializable
 import net.minestom.server.coordinate.Pos
+import net.minestom.server.entity.EntityType
 import org.slf4j.LoggerFactory
 import xyz.hafemann.slhserver.game.lobby.Lobby
 import java.nio.file.Paths
@@ -79,8 +80,21 @@ data class GameMapProperties(
     val name: String,
     private val spawnpos: PosProperties,
     val radius: Int,
+    val npcs: List<NPCProperties>
 ) {
     val spawn get() = spawnpos.pos()
+}
+
+@Serializable
+data class NPCProperties(
+    private val entitytype: String,
+    val name: String,
+    private val position: PosProperties,
+    val skin: SkinProperties? = null,
+    val action: String,
+) {
+    val type: EntityType get() = EntityType.fromNamespaceId("minecraft:${entitytype.lowercase()}")
+    val pos get() = position.pos()
 }
 
 @Serializable
@@ -95,3 +109,9 @@ data class PosProperties(
         return Pos(x, y, z, yaw, pitch)
     }
 }
+
+@Serializable
+data class SkinProperties(
+    val textures: String,
+    val signature: String,
+)
