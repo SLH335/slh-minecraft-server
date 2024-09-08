@@ -14,7 +14,7 @@ class ChatModule : GameModule() {
             event.setChatFormat { e ->
                 e.player.name
                     .append(Component.text(" > ", NamedTextColor.GRAY))
-                    .append(Component.text(e.message))
+                    .append(Component.text(e.message, NamedTextColor.WHITE))
             }
         }
     }

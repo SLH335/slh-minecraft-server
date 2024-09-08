@@ -2,7 +2,9 @@ package xyz.hafemann.slhserver.util
 
 import net.kyori.adventure.audience.Audience
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.ComponentLike
 import net.kyori.adventure.text.format.TextColor
+import net.kyori.adventure.text.format.TextDecoration
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.Entity
 import net.minestom.server.entity.GameMode
@@ -28,6 +30,22 @@ fun Audience.sendTranslated(key: String, vararg fields: Any) {
 
 fun Audience.sendTranslatedError(key: String, vararg fields: Any) {
     this.sendMessage(translateError(key, false, *fields))
+}
+
+fun Component.translate(key: String, vararg fields: ComponentLike): Component {
+    return this.append(Component.translatable(key, *fields))
+}
+
+fun Component.translate(key: String, color: TextColor): Component {
+    return this.append(Component.translatable(key, color))
+}
+
+fun Component.translate(key: String, color: TextColor, vararg fields: ComponentLike): Component {
+    return this.append(Component.translatable(key, color, *fields))
+}
+
+fun Component.translate(key: String, color: TextColor, decoration: TextDecoration): Component {
+    return this.append(Component.translatable(key, color, decoration))
 }
 
 private fun formatTranslatedMessage(

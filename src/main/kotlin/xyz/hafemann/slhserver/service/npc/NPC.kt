@@ -25,6 +25,7 @@ class NPC(
         if (type == EntityType.PLAYER) {
             enableSkinLayers()
         }
+        setNoGravity(true)
     }
 
     private fun registerListeners() {
@@ -38,7 +39,7 @@ class NPC(
             if (event.entity != this) return@addListener
 
             val nametag = Nametag(name)
-            nametag.instance = instance
+            nametag.setInstance(instance, this.position)
             this.addPassenger(nametag)
         }
         MinecraftServer.getGlobalEventHandler().addChild(eventNode)
@@ -89,25 +90,5 @@ class NPC(
         meta.isRightLegEnabled = true
         meta.isRightSleeveEnabled = true
         meta.setNotifyAboutChanges(true)
-    }
-
-    companion object {
-        fun buildInteraction(interactionString: String): (Player, NPC) -> Unit {
-            val split = interactionString.split('-')
-            when (split[0]) {
-                "game" -> {
-                    when (split[1]) {
-                        "bedwars" -> {
-                            when (split[2]) {
-                                "play" -> return { player, npc ->
-                                    player.sendMessage("Opening Bedwars Menu")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return { player, npc -> player.sendMessage("Clicked NPC") }
-        }
     }
 }

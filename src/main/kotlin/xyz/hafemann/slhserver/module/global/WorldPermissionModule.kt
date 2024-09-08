@@ -16,7 +16,7 @@ class WorldPermissionModule(
     val exceptions: List<Key> = listOf(),
 ) : GameModule() {
 
-    private val playerPlacedBlocks = mutableListOf<Point>()
+    val playerPlacedBlocks = mutableListOf<Point>()
 
     override val eventPriority: Int
         get() = -999 // Lower numbers run first; this module needs to have priority to cancel events early

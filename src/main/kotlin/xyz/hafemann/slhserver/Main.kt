@@ -5,6 +5,7 @@ import io.github.togar2.pvp.MinestomPvP
 import net.minestom.server.MinecraftServer
 import net.minestom.server.command.builder.Command
 import net.minestom.server.event.player.AsyncPlayerConfigurationEvent
+import net.minestom.server.event.player.PlayerSpawnEvent
 import net.minestom.server.extras.velocity.VelocityProxy
 import net.minestom.server.instance.block.BlockHandler
 import net.minestom.server.network.packet.client.play.ClientSignedCommandChatPacket
@@ -14,7 +15,9 @@ import xyz.hafemann.slhserver.command.*
 import xyz.hafemann.slhserver.game.Game
 import xyz.hafemann.slhserver.game.GameLoader
 import xyz.hafemann.slhserver.service.BedBlockHandler
+import xyz.hafemann.slhserver.service.EnderchestHandler
 import xyz.hafemann.slhserver.service.Internationalization
+import xyz.hafemann.slhserver.service.SLHPlayer
 import xyz.hafemann.slhserver.util.sendTranslatedError
 import kotlin.system.exitProcess
 import kotlin.system.measureTimeMillis
@@ -34,6 +37,8 @@ private fun start() {
     val minecraftServer = MinecraftServer.init()
 
     MinestomPvP.init()
+
+    MinecraftServer.getConnectionManager().setPlayerProvider(::SLHPlayer)
 
     // Enable Velocity proxy with secret from environment variable
     val velocitySecret = (dotenv["VELOCITY_SECRET"] ?: "").ifEmpty { error("No Velocity secret provided") }
@@ -63,7 +68,7 @@ private fun start() {
     logger.info("Started Minecraft Server on port $port")
 
     game = try {
-        GameLoader.runGame("lobby")
+        GameLoader.runGame(dotenv["GAME"], dotenv["GAME_MODE"], dotenv["GAME_MAP"])
     } catch (e: Throwable) {
         logger.info("There was an error initializing the game. Shutting down...")
         e.printStackTrace()
@@ -72,19 +77,28 @@ private fun start() {
     }
     logger.info("Started game ${game.properties.name}")
 
-    MinecraftServer.getGlobalEventHandler().addListener(AsyncPlayerConfigurationEvent::class.java) { event ->
+    val eventHandler = MinecraftServer.getGlobalEventHandler()
+
+    eventHandler.addListener(AsyncPlayerConfigurationEvent::class.java) { event ->
         val player = event.player
 
-        if (player.username == "SLH335") {
+        player.addPermission(Permission("command.game"))
+        if (player.username == "_BigChungus_") {
             player.permissionLevel = 4
             player.addPermission(Permission("*"))
-        } else {
-            player.addPermission(Permission("command.*"))
         }
+        //    player.permissionLevel = 3
+        //    player.addPermission(Permission("command.*"))
+        //}
 
         event.spawningInstance = game.instance
         player.respawnPoint = game.mapProperties.spawn
         game.addPlayer(player)
+    }
+
+    eventHandler.addListener(PlayerSpawnEvent::class.java) { event ->
+        if (!event.isFirstSpawn) return@addListener
+        event.player.isEnableRespawnScreen = false
     }
 }
 
@@ -92,10 +106,14 @@ private fun registerCommands() {
     val commandManager = MinecraftServer.getCommandManager()
 
     val commands = listOf<Command>(
+        AttributeCommand("attribute"),
+        ClearCommand("clear"),
         FlyCommand("fly"),
+        GameCommand("game"),
         GamemodeCommand("gamemode", "gm"),
         GiveCommand("give"),
         HealCommand("heal"),
+        //InvseeCommand("invsee"),
         KillCommand("kill"),
         PingCommand("ping", "latency"),
         StopCommand("stop"),

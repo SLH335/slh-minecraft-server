@@ -1,6 +1,5 @@
 package xyz.hafemann.slhserver.game
 
-import com.charleskorn.kaml.Yaml
 import net.minestom.server.MinecraftServer
 import net.minestom.server.entity.Player
 import net.minestom.server.event.Event
@@ -13,6 +12,7 @@ import org.slf4j.LoggerFactory
 import xyz.hafemann.slhserver.event.GameStateChangedEvent
 import xyz.hafemann.slhserver.module.GameModule
 import xyz.hafemann.slhserver.module.ModuleHolder
+import xyz.hafemann.slhserver.module.config.GameConfigModule
 import xyz.hafemann.slhserver.util.sendTranslatedError
 import xyz.hafemann.slhserver.util.translateError
 import java.nio.file.Paths
@@ -36,18 +36,9 @@ abstract class Game(val name: String, val mode: String, val map: String) : Modul
     lateinit var instance: InstanceContainer
         private set
 
-    val properties by lazy {
-        val path = Paths.get("games/$name.yml")
-        Yaml.default.decodeFromString(GameProperties.serializer(), path.toFile().readText())
-    }
-
-    val modeProperties = properties.modes.find { it.id == mode }
-        ?: error("Properties for $name mode $mode could not be loaded")
-
-    val mapProperties by lazy {
-        val path = Paths.get("worlds/$name/$mode/$map/map-config.yml")
-        Yaml.default.decodeFromString(GameMapProperties.serializer(), path.toFile().readText())
-    }
+    lateinit var properties: GameProperties
+    lateinit var modeProperties: GameModeProperties
+    lateinit var mapProperties: GameMapProperties
 
     protected val eventNode = EventNode.all("$name-$mode-$map")
 
@@ -67,6 +58,8 @@ abstract class Game(val name: String, val mode: String, val map: String) : Modul
     }
 
     fun init() {
+        use(GameConfigModule())
+
         loadMap()
 
         maxPlayers = modeProperties.maxPlayers
@@ -99,11 +92,13 @@ abstract class Game(val name: String, val mode: String, val map: String) : Modul
     }
 
     fun addPlayer(player: Player) {
-        if ((maxPlayers > 0) && (players.size >= maxPlayers)) {
+        if ((maxPlayers > 0) && (players.size >= maxPlayers) && !players.any { it.uuid == player.uuid }) {
             player.sendTranslatedError("game.error.full")
             player.kick(translateError("game.error.full"))
             return
         }
-        players.add(player)
+        if (!players.any { it.uuid == player.uuid }) {
+            players.add(player)
+        }
     }
 }

@@ -2,11 +2,19 @@ package xyz.hafemann.slhserver.game
 
 import com.charleskorn.kaml.Yaml
 import kotlinx.serialization.Serializable
+import net.minestom.server.coordinate.BlockVec
 import net.minestom.server.coordinate.Pos
 import net.minestom.server.entity.EntityType
+import net.minestom.server.entity.ItemEntity
+import net.minestom.server.instance.InstanceContainer
+import net.minestom.server.item.ItemStack
+import net.minestom.server.item.Material
 import org.slf4j.LoggerFactory
+import xyz.hafemann.slhserver.game.bedwars.Bedwars
 import xyz.hafemann.slhserver.game.lobby.Lobby
+import xyz.hafemann.slhserver.module.minigame.ResourceType
 import java.nio.file.Paths
+import java.time.Duration
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.listDirectoryEntries
 import kotlin.reflect.full.primaryConstructor
@@ -14,8 +22,9 @@ import kotlin.reflect.full.primaryConstructor
 object GameLoader {
     private val logger = LoggerFactory.getLogger(this::class.simpleName)
 
-    private val games = mutableMapOf<String, Class<out Game>>(
-        "lobby" to Lobby::class.java
+    private val games = mutableMapOf(
+        "lobby" to Lobby::class.java,
+        "bedwars" to Bedwars::class.java
     )
 
     private val gameProperties by lazy {
@@ -24,12 +33,14 @@ object GameLoader {
         } catch (e: Throwable) {
             error("Game properties directory does not exist")
         }
-        paths.map { path -> try {
-            Yaml.default.decodeFromString(GameProperties.serializer(), path.toFile().readText())
-        } catch (e: Throwable) {
-            e.printStackTrace()
-            error("Failed to load game properties from file ${path.fileName}")
-        } }
+        paths.map { path ->
+            try {
+                Yaml.default.decodeFromString(GameProperties.serializer(), path.toFile().readText())
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                error("Failed to load game properties from file ${path.fileName}")
+            }
+        }
     }
 
     private fun getMapProperties(gameName: String, mode: String, mapName: String): GameMapProperties {
@@ -65,13 +76,14 @@ data class GameProperties(
 data class GameModeProperties(
     val id: String,
     val name: String,
-    val teams: Int = -1,
+    val teamCount: Int = -1,
     val teamSize: Int = -1,
 ) {
-    val maxPlayers: Int get() {
-        if (teams == -1 || teamSize == -1) return -1
-        return teams * teamSize
-    }
+    val maxPlayers: Int
+        get() {
+            if (teamCount == -1 || teamSize == -1) return -1
+            return teamCount * teamSize
+        }
 }
 
 @Serializable
@@ -80,7 +92,9 @@ data class GameMapProperties(
     val name: String,
     private val spawnpos: PosProperties,
     val radius: Int,
-    val npcs: List<NPCProperties>
+    val npcs: List<NPCProperties> = listOf(),
+    val teams: List<TeamProperties> = listOf(),
+    val generators: List<GeneratorProperties> = listOf(),
 ) {
     val spawn get() = spawnpos.pos()
 }
@@ -98,15 +112,52 @@ data class NPCProperties(
 }
 
 @Serializable
+data class TeamProperties(
+    val id: String,
+    private val spawnpos: PosProperties,
+) {
+    val pos get() = spawnpos.pos()
+}
+
+@Serializable
 data class PosProperties(
     val x: Double,
     val y: Double,
     val z: Double,
-    val yaw: Float,
-    val pitch: Float,
+    val yaw: Float = 0f,
+    val pitch: Float = 0f,
 ) {
     fun pos(): Pos {
         return Pos(x, y, z, yaw, pitch)
+    }
+}
+
+@Serializable
+data class GeneratorProperties(
+    private val type: String,
+    private val position: PosProperties,
+) {
+    val pos: Pos
+        get() {
+            return position.pos()
+        }
+
+    val resource: ResourceType
+        get() {
+            return ResourceType.valueOf(type.uppercase())
+        }
+
+    fun dropResource(instance: InstanceContainer) {
+        val droppedItems = instance.entities.filter {
+            it is ItemEntity
+                    && it.position.distance(pos) < 2
+                    && it.itemStack.material() == resource.material
+        }.map { (it as ItemEntity).itemStack.amount() }.reduceOrNull { acc, i -> acc + i }
+
+        if (droppedItems == null || droppedItems < resource.spawnLimit) {
+            val itemEntity = ItemEntity(ItemStack.of(resource.material))
+            itemEntity.setInstance(instance, pos)
+        }
     }
 }
 
